@@ -9,14 +9,22 @@ open Datasto
 
 let builder = WebApplication.CreateBuilder(Environment.GetCommandLineArgs())
 
+builder.Services.AddAuthentication().AddCookie() |> ignore
 builder.Services.AddAntiforgery().AddDatastar() |> ignore<IServiceCollection>
 
 let app = builder.Build()
 
 app
+  .UseAuthentication()
   .UseAntiforgery()
   .UseRouting()
-  .UseFalco([ get "/login" Pages.login; post "/logout" Pages.logoutPost ])
+  .UseFalco(
+    [
+      get "/login" Pages.login
+      post "/login" Pages.loginPost
+      post "/logout" Pages.logoutPost
+    ]
+  )
 |> ignore
 
 app.Run()

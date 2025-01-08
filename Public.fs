@@ -12,19 +12,62 @@ open Microsoft.AspNetCore.Authentication.Cookies
 open System
 
 [<Struct>]
-type LoginFields =
+type LoginFormExtraField =
   | Email
   | Password
-  | Both
+  | EmailAndPassword
 
 [<return: Struct>]
 let (|MissingCredentials|_|) fields =
   match fields with
   | [ "email"; "password" ]
-  | [ "password"; "email" ] -> ValueSome Both
+  | [ "password"; "email" ] -> ValueSome EmailAndPassword
   | [ "email" ] -> ValueSome Email
   | [ "password" ] -> ValueSome Password
   | _ -> ValueNone
+
+module Fragments =
+
+  let inputsWithMissingFields(missingFields: string list) =
+    let email = h("input[name=email][type=email][required]")
+    let password = h("input[name=password][type=password][required]")
+
+    fragment(
+      match missingFields with
+      | [] -> [ email; password ]
+      | MissingCredentials Email -> [
+          email
+          h("p", "Please enter your email")
+          password
+        ]
+      | MissingCredentials Password -> [
+          email
+          password
+          h("p", "Please enter your password")
+        ]
+      | _ -> [ email; password; h("p", "Please enter both email and password") ]
+    )
+
+  let loginForm
+    (
+      tokenSet: AntiforgeryTokenSet,
+      missingFields: string list,
+      message: string option
+    ) =
+    let msg =
+      match message with
+      | Some msg -> h("p", msg)
+      | None -> empty
+
+    h(
+      "form[action=/login][method=post]",
+      h(
+        $"input[type=hidden][name={tokenSet.FormFieldName}][value={tokenSet.RequestToken}]"
+      ),
+      inputsWithMissingFields missingFields,
+      msg,
+      h("button[type=submit]", "Login")
+    )
 
 let login: HttpHandler =
   fun ctx -> taskUnit {
@@ -35,32 +78,9 @@ let login: HttpHandler =
     let missingFields = reqData.GetStringNonEmptyList "missingField"
     let message = reqData.TryGetString "message"
 
-    let content =
-      Layout.Page(
-        h(
-          "article",
-          h("h1", "Login"),
-          h(
-            "form"
-            , h(
-              $"input[type=hidden][name={tokenSet.FormFieldName}][value={tokenSet.RequestToken}]"
-            )
-            , match missingFields with
-              | MissingCredentials Both ->
-                h("p", "Please enter both email and password")
-              | MissingCredentials Email -> h("p", "Please enter your email")
-              | MissingCredentials Password ->
-                h("p", "Please enter your password")
-              | _ -> empty
-            , h("input[name=username][type=text][required]")
-            , h("input[name=password][type=password][required]")
-            , match message with
-              | Some msg -> h("p", msg)
-              | None -> empty
-            , h("button", "Login")
-          )
-        )
-      )
+    let loginForm = Fragments.loginForm(tokenSet, missingFields, message)
+
+    let content = Layout.Page(h("article", h("h1", "Login"), loginForm))
 
     return! Response.ofHox content ctx
   }
@@ -71,10 +91,10 @@ let loginPost: HttpHandler =
 
     match postedData with
     | Some formData ->
-      let username = formData.GetStringNonEmpty("username", "")
+      let email = formData.GetStringNonEmpty("email", "")
       let password = formData.GetStringNonEmpty("password", "")
 
-      if username = "admin" && password = "password" then
+      if email = "admin@admin" && password = "password" then
         let claims =
           ClaimsPrincipal(
             ClaimsIdentity(
@@ -93,8 +113,20 @@ let loginPost: HttpHandler =
             "/admin"
             ctx
       else
-        return!
-          Response.redirectTemporarily "/login?message=Wrong Credentials" ctx
+        let missing =
+          match email, password with
+          | "", "" -> $"missingField=email&missingField=password"
+          | "", _ -> "missingField=email"
+          | _, "" -> "missingField=password"
+          | _ -> ""
+
+        let query =
+          if missing = "" then
+            "message=Wrong Credentials"
+          else
+            $"message=Wrong Credentials&{missing}"
+
+        return! Response.redirectTemporarily $"/login?{query}" ctx
     | None ->
       return!
         Response.redirectTemporarily
