@@ -107,7 +107,7 @@ type DataStarHoxExtensions =
       csrf: AntiforgeryTokenSet,
       ?options: Map<string, obj>
     ) =
-    node.requestCsrf("get", event, url, csrf, ?options = options)
+    node.requestCsrf("put", event, url, csrf, ?options = options)
 
   [<Extension>]
   static member inline patchCsrf

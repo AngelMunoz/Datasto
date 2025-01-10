@@ -6,12 +6,14 @@
     <Compile Include="Extensions.fs" />
     <Compile Include="Layout.fs" />
     <Compile Include="Public.fs" />
+    <Compile Include="Migrations.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Falco" Version="5.0.0-rc1" />
     <PackageReference Include="Hox" Version="2.0.0" />
     <PackageReference Include="IcedTasks" Version="0.11.7" />
+    <PackageReference Include="Migrondi.Core" Version="1.0.0-beta-011" />
     <PackageReference Include="StarFederation.Datastar" Version="0.22.0-alpha.171" />
   </ItemGroup>
 </Project>

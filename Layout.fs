@@ -9,7 +9,7 @@ type Layout =
 
     h(
       "html",
-      h("head"),
+      h("head", h("link[rel=stylesheet][href=/styles/app.css]")),
       h(
         "body",
         content,

@@ -14,7 +14,18 @@ builder.Services.AddAntiforgery().AddDatastar() |> ignore<IServiceCollection>
 
 let app = builder.Build()
 
+let migrondi =
+  Migrondi.Core.Migrondi.MigrondiFactory(
+    Migrondi.Core.MigrondiConfig.Default,
+    "."
+  )
+
 app
+  .UseStaticFiles()
+  .UseIf(
+    app.Environment.IsDevelopment(),
+    fun app -> app.UseDeveloperExceptionPage()
+  )
   .UseAuthentication()
   .UseAntiforgery()
   .UseRouting()
@@ -27,4 +38,8 @@ app
   )
 |> ignore
 
-app.Run()
+try
+  Migrations.migrate(migrondi, app.Logger)
+  app.Run()
+with ex ->
+  eprintfn $"%O{ex}"

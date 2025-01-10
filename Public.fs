@@ -4,7 +4,6 @@ open IcedTasks
 
 open Microsoft.AspNetCore.Antiforgery
 
-open StarFederation.Datastar.DependencyInjection
 open Falco
 open Hox
 open System.Security.Claims
@@ -28,31 +27,42 @@ let (|MissingCredentials|_|) fields =
 
 module Fragments =
 
-  let inputsWithMissingFields(missingFields: string list) =
-    let email = h("input[name=email][type=email][required]")
+  let inputsWithMissingFields
+    (missingFields: string list, email: string option)
+    =
+    let email =
+      let email = defaultArg email ""
+      h($"input[name=email][type=email][required][value={email}]")
+
     let password = h("input[name=password][type=password][required]")
 
     fragment(
-      match missingFields with
-      | [] -> [ email; password ]
-      | MissingCredentials Email -> [
+      [
+        match missingFields with
+        | [] ->
+          email
+          password
+        | MissingCredentials Email ->
           email
           h("p", "Please enter your email")
           password
-        ]
-      | MissingCredentials Password -> [
+        | MissingCredentials Password ->
           email
           password
           h("p", "Please enter your password")
-        ]
-      | _ -> [ email; password; h("p", "Please enter both email and password") ]
+        | _ ->
+          email
+          password
+          h("p", "Please enter both email and password")
+      ]
     )
 
   let loginForm
     (
       tokenSet: AntiforgeryTokenSet,
       missingFields: string list,
-      message: string option
+      message: string option,
+      email: string option
     ) =
     let msg =
       match message with
@@ -64,7 +74,7 @@ module Fragments =
       h(
         $"input[type=hidden][name={tokenSet.FormFieldName}][value={tokenSet.RequestToken}]"
       ),
-      inputsWithMissingFields missingFields,
+      inputsWithMissingFields(missingFields, email),
       msg,
       h("button[type=submit]", "Login")
     )
@@ -77,8 +87,9 @@ let login: HttpHandler =
     let reqData = Request.getQuery ctx
     let missingFields = reqData.GetStringNonEmptyList "missingField"
     let message = reqData.TryGetString "message"
+    let email = reqData.TryGetString "email"
 
-    let loginForm = Fragments.loginForm(tokenSet, missingFields, message)
+    let loginForm = Fragments.loginForm(tokenSet, missingFields, message, email)
 
     let content = Layout.Page(h("article", h("h1", "Login"), loginForm))
 
@@ -99,8 +110,8 @@ let loginPost: HttpHandler =
           ClaimsPrincipal(
             ClaimsIdentity(
               [
-                Claim(ClaimTypes.Name, "admin")
-                Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+                Claim(ClaimTypes.Email, email)
+                Claim(ClaimTypes.Role, "admin")
               ],
               CookieAuthenticationDefaults.AuthenticationScheme
             )
@@ -115,14 +126,14 @@ let loginPost: HttpHandler =
       else
         let missing =
           match email, password with
-          | "", "" -> $"missingField=email&missingField=password"
-          | "", _ -> "missingField=email"
-          | _, "" -> "missingField=password"
+          | "", "" -> $"missingField=email&missingField=password&email={email}"
+          | "", _ -> $"missingField=email"
+          | _, "" -> "missingField=password&email={email}"
           | _ -> ""
 
         let query =
           if missing = "" then
-            "message=Wrong Credentials"
+            $"message=Wrong Credentials&email={email}"
           else
             $"message=Wrong Credentials&{missing}"
 
