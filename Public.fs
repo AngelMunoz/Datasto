@@ -109,10 +109,7 @@ let loginPost: HttpHandler =
         let claims =
           ClaimsPrincipal(
             ClaimsIdentity(
-              [
-                Claim(ClaimTypes.Email, email)
-                Claim(ClaimTypes.Role, "admin")
-              ],
+              [ Claim(ClaimTypes.Email, email) ],
               CookieAuthenticationDefaults.AuthenticationScheme
             )
           )
@@ -121,7 +118,7 @@ let loginPost: HttpHandler =
           Response.signInAndRedirect
             CookieAuthenticationDefaults.AuthenticationScheme
             claims
-            "/admin"
+            "/"
             ctx
       else
         let missing =
@@ -150,3 +147,17 @@ let logoutPost: HttpHandler =
   Response.signOutAndRedirect
     CookieAuthenticationDefaults.AuthenticationScheme
     "/login"
+
+
+let index: HttpHandler =
+  fun ctx -> task {
+
+    match ctx.User.Identity with
+    | null -> return! Response.redirectTemporarily "/login" ctx
+    | identity ->
+      if not identity.IsAuthenticated then
+        return! Response.redirectTemporarily "/login" ctx
+      else
+        let content = Layout.Page(h("article", h("h1", "Home")))
+        return! Response.ofHox content ctx
+  }

@@ -28,15 +28,24 @@ create table products (
     id integer primary key autoincrement,
     name text not null,
     price real,
+    description text,
     created_at datetime default current_timestamp
 );
 
 create table stock_areas (
     id integer primary key autoincrement,
     name text not null,
+    created_at datetime default current_timestamp
+);
+
+create table stock_area_products (
+    id integer primary key autoincrement,
+    stock_area_id integer not null,
     product_id integer not null,
     quantity integer not null,
     created_at datetime default current_timestamp,
+    updated_at datetime default current_timestamp,
+    foreign key (stock_area_id) references stock_areas(id),
     foreign key (product_id) references products(id)
 );
 
