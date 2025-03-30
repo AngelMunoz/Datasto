@@ -47,14 +47,13 @@ app
   .UseAuthentication()
   .UseAntiforgery()
   .UseRouting()
-  .UseFalco(
-    [
-      get "/" Pages.index
-      get "/login" Pages.login
-      post "/login" Pages.loginPost
-      post "/logout" Pages.logoutPost
-    ]
-  )
+  .UseFalco
+  [
+    get "/" Handlers.index
+    get "/login" Handlers.login
+    post "/login" Handlers.loginPost
+    post "/logout" Handlers.logoutPost
+  ]
 |> ignore
 
 try

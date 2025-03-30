@@ -1,4 +1,4 @@
-module Datasto.Pages
+module Datasto.Handlers
 
 open IcedTasks
 
@@ -32,30 +32,28 @@ module Fragments =
     =
     let email =
       let email = defaultArg email ""
-      h($"input[name=email][type=email][required][value={email}]")
+      h $"input[name=email][type=email][required][value={email}]"
 
-    let password = h("input[name=password][type=password][required]")
+    let password = h "input[name=password][type=password][required]"
 
-    fragment(
-      [
-        match missingFields with
-        | [] ->
-          email
-          password
-        | MissingCredentials Email ->
-          email
-          h("p", "Please enter your email")
-          password
-        | MissingCredentials Password ->
-          email
-          password
-          h("p", "Please enter your password")
-        | _ ->
-          email
-          password
-          h("p", "Please enter both email and password")
-      ]
-    )
+    fragment [
+      match missingFields with
+      | [] ->
+        email
+        password
+      | MissingCredentials Email ->
+        email
+        h("p", "Please enter your email")
+        password
+      | MissingCredentials Password ->
+        email
+        password
+        h("p", "Please enter your password")
+      | _ ->
+        email
+        password
+        h("p", "Please enter both email and password")
+    ]
 
   let loginForm
     (
@@ -71,9 +69,8 @@ module Fragments =
 
     h(
       "form[action=/login][method=post]",
-      h(
-        $"input[type=hidden][name={tokenSet.FormFieldName}][value={tokenSet.RequestToken}]"
-      ),
+      h
+        $"input[type=hidden][name={tokenSet.FormFieldName}][value={tokenSet.RequestToken}]",
       inputsWithMissingFields(missingFields, email),
       msg,
       h("button[type=submit]", "Login")
@@ -154,10 +151,9 @@ let index: HttpHandler =
 
     match ctx.User.Identity with
     | null -> return! Response.redirectTemporarily "/login" ctx
-    | identity ->
-      if not identity.IsAuthenticated then
-        return! Response.redirectTemporarily "/login" ctx
-      else
-        let content = Layout.Page(h("article", h("h1", "Home")))
-        return! Response.ofHox content ctx
+    | identity when identity.IsAuthenticated ->
+      return! Response.redirectTemporarily "/login" ctx
+    | _ ->
+      let content = Layout.Page(h("article", h("h1", "Home")))
+      return! Response.ofHox content ctx
   }

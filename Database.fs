@@ -48,7 +48,7 @@ module private Readers =
       let name = rd.ReadString "name"
       let email = rd.ReadString "email"
       let createdAt = rd.ReadDateTime "created_at"
-      (id, name, email, createdAt)
+      id, name, email, createdAt
 
   module Roles =
 

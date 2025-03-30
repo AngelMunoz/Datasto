@@ -24,7 +24,7 @@ module Response =
 
       do! ctx.Response.StartAsync(ctx.RequestAborted)
 
-      do! ctx.Response.WriteAsync("<!DOCTYPE html>")
+      do! ctx.Response.WriteAsync "<!DOCTYPE html>"
 
       do!
         Render.toStream(
